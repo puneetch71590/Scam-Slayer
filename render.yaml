@@ -1,0 +1,27 @@
+# One-click setup for Render (https://render.com): New + > Blueprint > pick this repo.
+services:
+  - type: web
+    name: scam-slayer
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 90
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: CHAT_PROVIDER
+        value: groq
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-20b
+      - key: TRUST_PROXY
+        value: "true"
+      - key: ASK_PER_MINUTE
+        value: "15"
+      - key: ASK_PER_DAY
+        value: "300"
+      # Secrets: Render asks you to type these in its dashboard. They are NOT stored in this file.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ADMIN_KEY
+        sync: false
