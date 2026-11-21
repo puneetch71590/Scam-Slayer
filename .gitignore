@@ -1,0 +1,17 @@
+# Secrets - NEVER commit these
+a.env
+.env
+*.env
+!a.env.example
+
+# Test data collected while the app runs
+data/
+
+# Python / editor junk
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+.idea/
+.vscode/
