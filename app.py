@@ -128,8 +128,6 @@ DEFAULT_SYSTEM_PROMPT = (
     "be to call the national cyber fraud helpline 1930 and report at cybercrime.gov.in, then "
     "inform the bank. Do not invent statistics, laws or phone numbers other than 1930. Keep "
     "every step under 20 words."
-    "If the user has asked a question rather than UPI Safety, please do not add anything "
-    "extra in that answer, answer this question and don't tell him much about UPI Safety, also remind him to ask questions about UPI Safety"
 )
 
 GROQ_API_URL = os.getenv("GROQ_API_URL", DEFAULT_GROQ_URL).strip() or DEFAULT_GROQ_URL
@@ -165,6 +163,11 @@ TRUST_PROXY = env_flag("TRUST_PROXY")                          # true on Render/
 ASK_PER_MINUTE = env_int("ASK_PER_MINUTE", 15)                 # AI questions per visitor per minute
 ASK_PER_DAY = env_int("ASK_PER_DAY", 300)                      # AI questions per visitor per day
 QUIZ_SIZE = 10                                                  # questions in the before/after quiz
+# The link printed on the poster (text + QR code). Only the admin changes it, here or in the host's settings.
+# Leave empty to use this site's own address.
+POSTER_URL = os.getenv("POSTER_URL", "").strip()
+if POSTER_URL and not re.match(r"^https?://", POSTER_URL, re.I):
+    POSTER_URL = "https://" + POSTER_URL
 
 # The URL and key that are actually used for the chosen provider.
 if USING_GROQ:
@@ -1020,6 +1023,23 @@ def build_stats():
 def home():
     """Serve the chat page. Only index.html is served, never other files."""
     return send_file(BASE_DIR / "index.html")
+
+
+def public_url():
+    """The address people should open: POSTER_URL if the admin set it, else this site's own address."""
+    if POSTER_URL:
+        return POSTER_URL
+    scheme, host = request.scheme, request.host
+    if TRUST_PROXY:
+        scheme = request.headers.get("X-Forwarded-Proto", scheme).split(",")[0].strip() or scheme
+        host = request.headers.get("X-Forwarded-Host", host).split(",")[0].strip() or host
+    return scheme + "://" + host + "/"
+
+
+@app.route("/api/config")
+def api_config():
+    """Public settings the page needs (currently just the poster link)."""
+    return jsonify({"ok": True, "poster_url": public_url()})
 
 
 @app.route("/health")

@@ -59,6 +59,9 @@ git push -u origin main
 ```
 **Never commit `a.env`.** If a key was ever pushed or shared, delete it at https://console.groq.com/keys and create a new one — removing the file later does not remove it from git history.
 
+## The poster link (admin only)
+The website link on the poster is locked for visitors. It comes from the server: set `POSTER_URL=https://your-app.onrender.com` in `a.env` (or Render's Environment tab). If you leave it unset, the site's own address is used. To change it for one poster without editing settings, open the Poster page, click **Admin: change link** and enter your `ADMIN_KEY`.
+
 ## Team results (10-day test)
 Set `ADMIN_KEY`, then call `/api/stats` (summary) or `/api/export.csv` (every quiz result for Excel/Sheets) with the header `X-Admin-Key: <your key>`. The web app has a Team results page that asks for the same key.
 

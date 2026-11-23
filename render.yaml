@@ -16,6 +16,7 @@ services:
         value: openai/gpt-oss-20b
       - key: TRUST_PROXY
         value: "true"
+      # Optional: the link printed on the poster. Add it in Render's Environment tab: POSTER_URL
       - key: ASK_PER_MINUTE
         value: "15"
       - key: ASK_PER_DAY

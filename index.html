@@ -971,6 +971,9 @@
 
     /* Tablets (iPad): keep cards and grids from stretching too wide */
     @media (min-width: 700px) and (max-width: 1100px) { .grid { grid-template-columns: repeat(2, 1fr); } .wrap { max-width: 860px; } }
+    .field input[readonly] { opacity: 0.8; cursor: not-allowed; }
+    .link-btn { background: none; border: 0; color: var(--muted); font: inherit; font-size: 0.82rem; text-decoration: underline; cursor: pointer; padding: 0; margin: -4px 0 12px; }
+    .link-btn:hover { color: var(--text); }
   </style>
 </head>
 <body>
@@ -1174,9 +1177,10 @@
             </select></div>
           <div class="field"><label for="poster-theme">Style</label>
             <select id="poster-theme"><option value="dark">Dark (looks best on phones)</option><option value="light">Light (best for printing)</option></select></div>
-          <div class="field"><label for="poster-link">Your chatbot link (shown as text and as a QR code)</label>
-            <input type="text" id="poster-link" autocomplete="off" placeholder="https://your-chatbot-link"></div>
+          <div class="field"><label for="poster-link">🔒 Chatbot link on the poster (set by the admin)</label>
+            <input type="text" id="poster-link" autocomplete="off" readonly placeholder="Loading…"></div>
           <div class="error-text" id="poster-link-note"></div>
+          <button type="button" class="link-btn" id="poster-admin">Admin: change link</button>
           <div class="field"><label for="poster-team">Team and school (optional)</label>
             <input type="text" id="poster-team" maxlength="60" autocomplete="off" placeholder="e.g. Team name, School, City"></div>
           <div class="poster-actions">
@@ -4418,11 +4422,32 @@
     function initPoster() {
       if (!posterReady) {
         posterReady = true;
-        try { posterLink.value = localStorage.getItem("posterLink") || ""; posterTeam.value = localStorage.getItem("posterTeam") || ""; } catch (e) { /* ignore */ }
-        if (!posterLink.value) posterLink.value = window.location.origin + window.location.pathname.replace(/index\.html$/, "");
+        try { posterTeam.value = localStorage.getItem("posterTeam") || ""; } catch (e) { /* ignore */ }
+        // The poster link is set by the admin on the server (POSTER_URL). Visitors can only read it.
+        posterLink.value = window.location.origin + window.location.pathname.replace(/index\.html$/, "");
+        fetch("/api/config").then(function (r) { return r.json(); }).then(function (cfg) {
+          if (cfg && cfg.poster_url) { posterLink.value = cfg.poster_url; drawPoster(); updateLinkNote(); }
+        }).catch(function () { /* keep the page's own address */ });
+        const adminBtn = document.getElementById("poster-admin");
+        async function verifyAdmin(key) {
+          try { const r = await fetch("/api/stats", { headers: { "X-Admin-Key": key } }); return r.ok; } catch (e) { return false; }
+        }
+        adminBtn.addEventListener("click", async function () {
+          let key = adminKey();
+          if (!key || !(await verifyAdmin(key))) {
+            key = (window.prompt("Admin key:") || "").trim();
+            if (!key) return;
+            if (!(await verifyAdmin(key))) { window.alert("That admin key is not correct."); return; }
+            try { sessionStorage.setItem("adminKey", key); } catch (e) { /* ignore */ }
+          }
+          posterLink.removeAttribute("readonly");
+          posterLink.focus();
+          adminBtn.hidden = true;
+          updateLinkNote();
+        });
         ["input", "change"].forEach(function (evt) {
           [posterLang, posterTheme, posterLink, posterTeam].forEach(function (ctrl) { ctrl.addEventListener(evt, function () {
-            try { localStorage.setItem("posterLink", posterLink.value); localStorage.setItem("posterTeam", posterTeam.value); } catch (e) { /* ignore */ }
+            try { localStorage.setItem("posterTeam", posterTeam.value); } catch (e) { /* ignore */ }
             drawPoster(); updateLinkNote();
           }); });
         });
@@ -4454,7 +4479,7 @@
     function updateLinkNote() {
       const v = posterLink.value.trim();
       const local = /^(https?:\/\/)?(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(v);
-      posterLinkNote.textContent = !v ? "Paste your public chatbot link here." : local ? "⚠ This looks like a local link. Replace it with your public link so it opens for anyone." : "";
+      posterLinkNote.textContent = !v ? "Paste your public chatbot link here." : local ? (posterLink.readOnly ? "⚠ The admin has not set the public poster link yet." : "⚠ This looks like a local link. Replace it with your public link so it opens for anyone.") : "";
     }
 
     // ------------------------------------------------------------------
@@ -4523,7 +4548,7 @@
       resultsEl.appendChild(chatGrid);
       if (c.top_scenarios.length) {
         const list = el("ol", "review");
-        c.top_scenarios.slice(0, 4).forEach(function (pair) {
+        c.top_scenarios.slice(0, 8).forEach(function (pair) {
           const sc = scenarioById(pair[0]);
           list.appendChild(el("li", null, (sc ? sc.title : pair[0] === "lost" ? "Already lost money" : pair[0] === "safe" ? "Normal payment" : pair[0]) + ": " + pair[1]));
         });
