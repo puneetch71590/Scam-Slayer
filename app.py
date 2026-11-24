@@ -83,7 +83,7 @@ CHAT_PROVIDER = os.getenv("CHAT_PROVIDER", "groq").strip().lower()
 USING_GROQ = CHAT_PROVIDER == "groq"
 
 # ---- Groq settings ----
-DEFAULT_GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+DEFAULT_GROQ_URL = "https://generativelanguage.googleapis.com"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b"
 
 # The instructions the AI gets with every question. The AI must answer with ONE JSON
